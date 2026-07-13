@@ -1,0 +1,10 @@
+{
+  "name": "Demo Blog",
+  "description": "",
+  "url": "",
+  "defaultTheme": "system",
+  "socials": [],
+  "theme": {
+    "accent": "#e8446e"
+  }
+}
