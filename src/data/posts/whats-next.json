@@ -8,8 +8,8 @@
       "type": "prose",
       "id": "p-1",
       "props": {
-        "markdown": "This is a scheduled draft. Because `draft` is `true` and `publishAt` is in the future, it is excluded from the build. The `scheduled-publish.yml` workflow promotes it to published once its time arrives, then commits the change — which triggers a fresh deploy.",
-        "html": "<p>This is a scheduled draft. Because <code>draft</code> is <code>true</code> and <code>publishAt</code> is in the future, it is excluded from the build. The <code>scheduled-publish.yml</code> workflow promotes it to published once its time arrives, then commits the change — which triggers a fresh deploy.</p>\n"
+        "markdown": "This is a scheduled draft. Because `draft` is `true` and `publishAt` is in the future, it is excluded from the build. The `scheduled-publish.yml` workflow promotes it to published once its time arrives, then commits the change — which triggers a fresh deploy.\n\n:::tip\nThis 💩 might actually, work?! 🤓\n:::\n\n```ts\nasync () => await new Promise(() => \"Noice...\");\n```",
+        "html": "<p>This is a scheduled draft. Because <code>draft</code> is <code>true</code> and <code>publishAt</code> is in the future, it is excluded from the build. The <code>scheduled-publish.yml</code> workflow promotes it to published once its time arrives, then commits the change — which triggers a fresh deploy.</p>\n<p>:::tip<br>This 💩 might actually, work?! 🤓<br>:::</p>\n<pre><code class=\"language-ts\">async () =&gt; await new Promise(() =&gt; &quot;Noice...&quot;);\n</code></pre>\n"
       }
     }
   ],
