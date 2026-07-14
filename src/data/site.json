@@ -3,7 +3,13 @@
   "description": "",
   "url": "",
   "defaultTheme": "system",
-  "socials": [],
+  "links": [
+    {
+      "label": "David Pine",
+      "href": "https://davidpine.dev",
+      "icon": "atSign"
+    }
+  ],
   "theme": {
     "accent": "#e8446e"
   }
