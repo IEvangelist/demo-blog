@@ -10,10 +10,19 @@
       "props": {
         "brand": "The Blog",
         "links": [
-          { "label": "Posts", "href": "#posts" },
-          { "label": "About", "href": "#about" }
+          {
+            "label": "Posts",
+            "href": "#posts"
+          },
+          {
+            "label": "About",
+            "href": "#about"
+          }
         ],
-        "cta": { "label": "Subscribe", "href": "#subscribe" }
+        "cta": {
+          "label": "Subscribe",
+          "href": "#subscribe"
+        }
       }
     },
     {
@@ -27,16 +36,39 @@
       }
     },
     {
+      "type": "gallery",
+      "id": "Gallery-3031e8d1-b6a2-494c-bcfc-900a97cbd8f8",
+      "props": {
+        "heading": "",
+        "columns": 2,
+        "items": [
+          {
+            "title": "Hubris",
+            "description": "The friendly mascot of GitHub stats.",
+            "image": "/media/hubris-8a6b8e5f.png",
+            "href": "",
+            "tags": []
+          }
+        ]
+      }
+    },
+    {
       "type": "footer",
       "id": "footer-1",
       "props": {
         "brand": "The Pagewright Blog",
         "tagline": "Published with Pagewright.",
         "links": [
-          { "label": "GitHub", "href": "https://github.com" },
-          { "label": "RSS", "href": "#" }
+          {
+            "label": "GitHub",
+            "href": "https://github.com"
+          },
+          {
+            "label": "RSS",
+            "href": "#"
+          }
         ],
-        "copyright": "© 2026"
+        "copyright": "© {{currentYear}}"
       }
     }
   ]
