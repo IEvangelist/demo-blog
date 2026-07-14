@@ -3,9 +3,11 @@ import type {
   BlockProps,
   BlockType,
   Link,
+  SiteConfig,
 } from "../schema";
 import { BlockIcon } from "../icons";
-import { withBase, type BaseAware } from "../base";
+import { withBase, normalizeBase, type BaseAware } from "../base";
+import { getGitHubDiscussionsConfigIssues } from "../post-components";
 
 /**
  * Block components. Plain React + scoped `pw-` CSS classes (see styles/blocks.css) so they render
@@ -15,6 +17,42 @@ import { withBase, type BaseAware } from "../base";
  * Each block accepts an optional `base` (the site base path) threaded down from PageRenderer so that
  * root-relative image/link URLs resolve on GitHub Pages project sites.
  */
+
+interface SiteAware {
+  site?: SiteConfig;
+}
+
+function linkAttributes(link: Link, base?: string) {
+  const href = withBase(base, link.href);
+  const external = /^(?:https?:)?\/\//i.test(link.href);
+  return {
+    href,
+    target: external ? "_blank" : undefined,
+    rel: external ? "noopener noreferrer" : undefined,
+  };
+}
+
+function LinkContent({ link }: { link: Link }) {
+  return (
+    <>
+      {link.icon ? (
+        <span className="pw-linkicon" aria-hidden="true">
+          <BlockIcon name={link.icon} size={16} />
+        </span>
+      ) : null}
+      <span>{link.label}</span>
+    </>
+  );
+}
+
+function linkDestinationKey(link: Link): string {
+  const href = link.href.trim();
+  try {
+    return new URL(href).href;
+  } catch {
+    return href;
+  }
+}
 
 function CtaLink({
   link,
@@ -27,8 +65,8 @@ function CtaLink({
 }) {
   if (!link) return null;
   return (
-    <a className={`pw-btn pw-btn--${variant}`} href={withBase(base, link.href)}>
-      {link.label}
+    <a className={`pw-btn pw-btn--${variant}`} {...linkAttributes(link, base)}>
+      <LinkContent link={link} />
     </a>
   );
 }
@@ -43,8 +81,8 @@ export function Navbar({ brand, logo, links = [], cta, base }: BlockProps<"navba
         </a>
         <div className="pw-navbar__links">
           {links.map((l, i) => (
-            <a key={i} className="pw-navbar__link" href={withBase(base, l.href)}>
-              {l.label}
+            <a key={i} className="pw-navbar__link" {...linkAttributes(l, base)}>
+              <LinkContent link={l} />
             </a>
           ))}
           <CtaLink link={cta} variant="primary" base={base} />
@@ -141,7 +179,7 @@ export function Gallery({
                   {item.description ? (
                     <p className="pw-gallery__desc">{item.description}</p>
                   ) : null}
-                  {item.tags.length > 0 ? (
+                  {item.tags?.length ? (
                     <div className="pw-gallery__tags">
                       {item.tags.map((t, ti) => (
                         <span key={ti} className="pw-tag">
@@ -194,16 +232,133 @@ export function Cta({
   );
 }
 
-export function Prose({ html = "" }: BlockProps<"prose">) {
+/**
+ * Rewrites root-relative `src`/`href` attributes in a prose HTML fragment to include the site base
+ * path, so uploaded images (`/media/…`) and internal links resolve on GitHub Pages *project* sites.
+ * Absolute/protocol-relative/anchor URLs are left untouched by {@link withBase}.
+ */
+function withBaseInHtml(html: string, base?: string): string {
+  const b = normalizeBase(base);
+  if (b === "/" || !html) return html;
+  return html.replace(
+    /(\b(?:src|href)=)("|')(\/[^"']*)\2/g,
+    (_m, attr: string, quote: string, url: string) => `${attr}${quote}${withBase(base, url)}${quote}`,
+  );
+}
+
+export function Prose({ html = "", base }: BlockProps<"prose"> & BaseAware) {
   return (
     <section className="pw-section">
       <div
         className="pw-container pw-prose"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: withBaseInHtml(html, base) }}
       />
     </section>
   );
 }
+
+export function GitHubDiscussions({
+  repo,
+  repoId,
+  category,
+  categoryId,
+  mapping = "pathname",
+  term,
+  discussionNumber,
+  strict = true,
+  reactionsEnabled = true,
+  inputPosition = "top",
+  theme = "preferred_color_scheme",
+  lang = "en",
+}: BlockProps<"githubDiscussions">) {
+  const props: BlockProps<"githubDiscussions"> = {
+    repo,
+    repoId,
+    category,
+    categoryId,
+    mapping,
+    term,
+    discussionNumber,
+    strict,
+    reactionsEnabled,
+    inputPosition,
+    theme,
+    lang,
+  };
+  const issues = getGitHubDiscussionsConfigIssues(props);
+  const discussionHref = REPOSITORY_NAME_PATTERN.test(repo)
+    ? `https://github.com/${repo.split("/").map(encodeURIComponent).join("/")}/discussions`
+    : "https://giscus.app";
+
+  return (
+    <section className="pw-section pw-discussion" aria-label="Discussion">
+      <div className="pw-container pw-discussion__inner">
+        <div className="pw-discussion__header">
+          <div>
+            <h2 className="pw-discussion__heading">
+              Discussion
+            </h2>
+            <p className="pw-discussion__intro">
+              Read publicly. Sign in with GitHub in the comments panel to join the conversation.
+            </p>
+          </div>
+          <a className="pw-discussion__github" href="https://github.com/login" target="_blank" rel="noreferrer">
+            Sign in with GitHub
+          </a>
+        </div>
+
+        {issues.length > 0 ? (
+          <div className="pw-discussion__setup" role="status">
+            <strong>Comments are not configured yet.</strong>
+            <p>The site owner needs to finish the GitHub Discussions setup in Pagewright.</p>
+            <a href="https://giscus.app" target="_blank" rel="noreferrer">
+              Open the Giscus setup guide
+            </a>
+          </div>
+        ) : (
+          <div className="pw-discussion__embed">
+            <div className="pw-discussion__loading" role="status" aria-live="polite">
+              <span>Loading discussion</span>
+              <i />
+              <i />
+              <i />
+            </div>
+            <script
+              src="https://giscus.app/client.js"
+              data-repo={repo}
+              data-repo-id={repoId}
+              data-category={category}
+              data-category-id={categoryId}
+              data-mapping={mapping}
+              data-term={
+                mapping === "specific"
+                  ? term
+                  : mapping === "number"
+                    ? discussionNumber
+                    : undefined
+              }
+              data-strict={strict ? "1" : "0"}
+              data-reactions-enabled={reactionsEnabled ? "1" : "0"}
+              data-emit-metadata="0"
+              data-input-position={inputPosition}
+              data-theme={theme}
+              data-lang={lang}
+              data-loading="lazy"
+              crossOrigin="anonymous"
+              async
+            />
+            <noscript>
+              JavaScript is required to load comments. You can{" "}
+              <a href={discussionHref}>view the repository discussions on GitHub</a>.
+            </noscript>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const REPOSITORY_NAME_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 export function Footer({
   brand,
@@ -211,7 +366,17 @@ export function Footer({
   links = [],
   copyright,
   base,
-}: BlockProps<"footer"> & BaseAware) {
+  site,
+}: BlockProps<"footer"> & BaseAware & SiteAware) {
+  const globalLinks = site?.links ?? [];
+  const seenLinks = new Set<string>();
+  const visibleLinks = [...links, ...globalLinks].filter((link) => {
+    const key = linkDestinationKey(link);
+    if (seenLinks.has(key)) return false;
+    seenLinks.add(key);
+    return true;
+  });
+
   return (
     <footer className="pw-footer">
       <div className="pw-container pw-footer__inner">
@@ -220,9 +385,9 @@ export function Footer({
           {tagline ? <p className="pw-footer__tagline">{tagline}</p> : null}
         </div>
         <div className="pw-footer__links">
-          {links.map((l, i) => (
-            <a key={i} className="pw-footer__link" href={withBase(base, l.href)}>
-              {l.label}
+          {visibleLinks.map((l, i) => (
+            <a key={i} className="pw-footer__link" {...linkAttributes(l, base)}>
+              <LinkContent link={l} />
             </a>
           ))}
         </div>
@@ -242,6 +407,7 @@ export const blockRegistry: {
   gallery: Gallery,
   cta: Cta,
   prose: Prose,
+  githubDiscussions: GitHubDiscussions,
   footer: Footer,
 };
 
@@ -274,20 +440,34 @@ export function PostList({
   heading,
   subheading,
   posts,
+  upcoming = [],
   base,
 }: {
   heading?: string;
   subheading?: string;
   posts: PostCard[];
+  /** Scheduled/draft posts, surfaced as polished "Coming soon" teasers (not yet linkable). */
+  upcoming?: PostCard[];
   base?: string;
 }) {
   return (
-    <section className="pw-section pw-postlist">
+    <section className="pw-section pw-postlist" id="posts">
       <div className="pw-container">
         {heading ? <h2 className="pw-section__heading">{heading}</h2> : null}
         {subheading ? <p className="pw-section__subheading">{subheading}</p> : null}
         {posts.length === 0 ? (
-          <p className="pw-postlist__empty">No posts published yet — check back soon.</p>
+          <div className="pw-postlist__empty">
+            <span className="pw-postlist__emptyicon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </span>
+            <p className="pw-postlist__emptytitle">Your first story is coming soon</p>
+            <p className="pw-postlist__emptybody">
+              Write in the editor, hit publish, and your posts land here — deployed automatically.
+            </p>
+          </div>
         ) : (
           <div className="pw-postlist__grid">
             {posts.map((p, i) => (
@@ -317,6 +497,37 @@ export function PostList({
             ))}
           </div>
         )}
+        {upcoming.length > 0 ? (
+          <div className="pw-upcoming">
+            <h3 className="pw-upcoming__heading">
+              <span className="pw-upcoming__dot" aria-hidden="true" />
+              Coming soon
+            </h3>
+            <div className="pw-postlist__grid pw-upcoming__grid">
+              {upcoming.map((p, i) => (
+                <article key={i} className="pw-postcard pw-postcard--soon" aria-disabled="true">
+                  <div className="pw-postcard__body">
+                    <span className="pw-postcard__badge">
+                      <span className="pw-postcard__badgedot" aria-hidden="true" />
+                      Scheduled
+                    </span>
+                    <h3 className="pw-postcard__title">{p.title}</h3>
+                    {p.excerpt ? <p className="pw-postcard__excerpt">{p.excerpt}</p> : null}
+                    {p.tags && p.tags.length > 0 ? (
+                      <div className="pw-postcard__tags">
+                        {p.tags.map((t, ti) => (
+                          <span key={ti} className="pw-tag">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
